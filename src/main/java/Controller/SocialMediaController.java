@@ -2,6 +2,7 @@ package Controller;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -120,33 +121,44 @@ public class SocialMediaController {
         }
     }
 
-    private void updateMessageTextHandler(Context ctx) throws JsonProcessingException {
-        String message_id = ctx.pathParam("message_id");
-        String message_text;
+    private void updateMessageTextHandler(Context ctx) throws SQLException {
+        String messageIdStr = ctx.pathParam("message_id");
+        String messageText;
+        
+        try {
+            messageText = ctx.bodyAsClass(Map.class).get("message_text").toString();
+        } catch (Exception e) {
+            ctx.status(400).result("");
+            return;
+        }
+    
+        int messageId;
     
         try {
-            message_text = new ObjectMapper().readTree(ctx.body()).get("message_text").asText();
-        } catch (Exception e) {
-            ctx.status(400).result("Invalid request body");
+            messageId = Integer.parseInt(messageIdStr);
+        } catch (NumberFormatException e) {
+            ctx.status(400).result("");
             return;
         }
     
         try {
-            int messageId = Integer.parseInt(message_id);
-            Message updatedMessage = messageService.updateMessageText(messageId, message_text);
-            if (updatedMessage != null) {
-                ctx.json(updatedMessage);
+            Message message = messageService.updateMessageText(messageId, messageText);
+            if (message != null) {
+                ctx.json(message);
                 ctx.status(200);
             } else {
-                ctx.status(400).result("Invalid message text or message ID not found");
+                ctx.status(400).result("");
             }
-        } catch (NumberFormatException e) {
-            ctx.status(400).result("Invalid message ID format");
-        } catch (Exception e) {
-            ctx.status(500).result("Internal Server Error: " + e.getMessage());
-            e.printStackTrace(); // Log the exception for debugging purposes
+        } catch (IllegalArgumentException e) {
+            ctx.status(400).result("");
         }
     }
+    
+    
+    
+    
+    
+    
     
     
 

@@ -1,6 +1,9 @@
 package Service;
 
+import java.sql.SQLException;
 import java.util.List;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import DAO.MessageDAO;
 import Model.Message;
@@ -36,7 +39,7 @@ public class MessageService {
         return messageDAO.insertMessage(message);
     }
 
-    public Message updateMessageText(int message_id, String message_text) {
+    public Message updateMessageText(int message_id, String message_text) throws IllegalArgumentException, SQLException {
         return messageDAO.patchMessageText(message_id, message_text);
     }
     

@@ -8,6 +8,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import Model.Message;
 import Util.ConnectionUtil;
 
@@ -159,42 +161,62 @@ public class MessageDAO {
         return null;
     }
 
-    public Message patchMessageText(int message_id, String message_text) {
+    public Message patchMessageText(int message_id, String message_text) throws SQLException, IllegalArgumentException {
         Connection conn = ConnectionUtil.getConnection();
         Message message = null;
-        
+    
+        // Check if the message text is valid
+        if (message_text == null || message_text.isBlank() || message_text.length() > 255) {
+            throw new IllegalArgumentException("Invalid message text");
+        }
+    
         try {
-            // Check if the message text is valid
-            if (message_text == null || message_text.isBlank() || message_text.length() > 255) {
-                return null; // Message text is invalid
+            // Check if the message exists
+            String checkSql = "SELECT * FROM Message WHERE message_id = ?";
+            PreparedStatement checkPs = conn.prepareStatement(checkSql);
+            checkPs.setInt(1, message_id);
+            ResultSet checkRs = checkPs.executeQuery();
+    
+            if (!checkRs.next()) {
+                return null; // Message not found
             }
-
-            String sql = "UPDATE Message SET message_text = ? WHERE message_id = ?;";
+    
+            // Update the message text
+            String sql = "UPDATE Message SET message_text = ? WHERE message_id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setString(1, message_text);
             ps.setInt(2, message_id);
-            int rows_affected = ps.executeUpdate();
-
-            if (rows_affected > 0) {
-                String fetchSql = "SELECT * FROM Message WHERE message_id = ?;";
+            int rowsAffected = ps.executeUpdate();
+    
+            // If the update was successful, fetch the updated message details
+            if (rowsAffected > 0) {
+                String fetchSql = "SELECT * FROM Message WHERE message_id = ?";
                 PreparedStatement fetchPs = conn.prepareStatement(fetchSql);
                 fetchPs.setInt(1, message_id);
                 ResultSet rs = fetchPs.executeQuery();
-
+    
                 if (rs.next()) {
                     message = new Message(
-                    rs.getInt("message_id"),
-                    rs.getInt("posted_by"),
-                    rs.getString("message_text"),
-                    rs.getLong("time_posted_epoch")
+                        rs.getInt("message_id"),
+                        rs.getInt("posted_by"),
+                        rs.getString("message_text"),
+                        rs.getLong("time_posted_epoch")
                     );
                 }
             }
-            
+    
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            throw new SQLException("Database error: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            throw e;
         }
         return message;
     }
+    
+    
+    
+    
+
+    
     
 }
